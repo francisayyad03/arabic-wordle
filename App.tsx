@@ -3,10 +3,14 @@ import { useGame } from './src/game/useGame';
 import { Board } from './src/components/board';
 import { Keyboard } from './src/components/keyboard';
 import { getKeyboardState } from './src/game/keyboardState';
+import { GameOverModal } from './src/components/GameOverModal';
+import { useState } from 'react';
 
 export default function App() {
   const game = useGame();
   const keyStates = getKeyboardState(game.results);
+  const [showModal, setShowModal] = useState(true);
+
 
   return (
     <View style={styles.container}>
@@ -33,6 +37,15 @@ export default function App() {
           keyStates={keyStates}
         />
       </View>
+
+    {game.status !== 'playing' && (
+    <GameOverModal
+        visible={showModal}
+        status={game.status}
+        answer={game.answer}
+        onClose={() => setShowModal(false)}
+    />
+    )}
     </View>
   );
 }

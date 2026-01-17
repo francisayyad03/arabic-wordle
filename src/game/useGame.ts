@@ -64,13 +64,14 @@ export function useGame() {
     }
   }
 
-  return {
-    guesses,
-    results,
-    currentGuess,
-    status,
-    addLetter,
-    removeLetter,
-    submitGuess,
-  };
+return {
+  answer,
+  guesses,
+  results,
+  currentGuess,
+  status,
+  addLetter,
+  removeLetter,
+  submitGuess,
+};
 }
