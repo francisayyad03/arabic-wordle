@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { evaluateGuess } from './rules';
 import { isGuessAllowed } from './validator';
 import { getDailyWord } from './dailyword';
 import { TileResult } from './types';
 import { ALLOWED_WORDS } from '../data/allowed';
 import { normalizeArabic } from '../utils/arabic';
+import { getLocalDayId, diffDays } from '../utils/day';
+import { loadGameState, saveGameState, loadStats, saveStats } from './storage';
 
 const MAX_GUESSES = 6;
 const WORD_LENGTH = 5;
@@ -16,7 +18,9 @@ type Stats = {
   gamesWon: number;
   currentStreak: number;
   maxStreak: number;
-  guessDistribution: number[]; // length 6
+  guessDistribution: number[];
+  lastCompletedDayId?: string | null;
+  lastWinDayId?: string | null;
 };
 
 const DEFAULT_STATS: Stats = {
@@ -25,38 +29,104 @@ const DEFAULT_STATS: Stats = {
   currentStreak: 0,
   maxStreak: 0,
   guessDistribution: [0, 0, 0, 0, 0, 0],
+  lastCompletedDayId: null,
+  lastWinDayId: null,
 };
 
-
 export function useGame() {
-  const [answer] = useState(getDailyWord);
+  const initialDayId = getLocalDayId();
+
+  // Same as your old: answer is stable + deterministic per day
+  const [dayId, setDayId] = useState(initialDayId);
+  const [answer, setAnswer] = useState(() => getDailyWord(initialDayId));
+
   const [guesses, setGuesses] = useState<string[]>([]);
   const [results, setResults] = useState<TileResult[][]>([]);
   const [currentGuess, setCurrentGuess] = useState('');
   const [status, setStatus] = useState<GameStatus>('playing');
   const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
 
+  const [hydrated, setHydrated] = useState(false);
+
+  // LOAD once (hydrate)
+  useEffect(() => {
+    (async () => {
+      const today = getLocalDayId(); // add random date here for testing: "2024-01-01" and etc
+
+      // stats
+      const savedStats = await loadStats();
+      if (savedStats) setStats(savedStats as any);
+
+      // game
+      const savedGame = await loadGameState();
+
+      // always compute answer from dayId (source of truth)
+      const todayAnswer = getDailyWord(today);
+
+      if (savedGame && savedGame.dayId === today) {
+        setDayId(today);
+        setAnswer(todayAnswer);
+
+        setGuesses(savedGame.guesses ?? []);
+        setResults(savedGame.results ?? []);
+        setCurrentGuess(savedGame.currentGuess ?? '');
+        setStatus(savedGame.status ?? 'playing');
+      } else {
+        // new day -> fresh board
+        setDayId(today);
+        setAnswer(todayAnswer);
+
+        setGuesses([]);
+        setResults([]);
+        setCurrentGuess('');
+        setStatus('playing');
+      }
+
+      setHydrated(true);
+    })();
+  }, []);
+
+  // SAVE game state after hydration (prevents overwrite-on-mount bug)
+  useEffect(() => {
+    if (!hydrated) return;
+
+    (async () => {
+      await saveGameState({
+        dayId,
+        answer,
+        guesses,
+        results,
+        currentGuess,
+        status,
+      });
+    })();
+  }, [hydrated, dayId, answer, guesses, results, currentGuess, status]);
+
+  // SAVE stats after hydration
+  useEffect(() => {
+    if (!hydrated) return;
+    (async () => {
+      await saveStats(stats as any);
+    })();
+  }, [hydrated, stats]);
+
   function addLetter(letter: string) {
     if (status !== 'playing') return;
     if (currentGuess.length >= WORD_LENGTH) return;
-
     setCurrentGuess(prev => prev + letter);
   }
 
   function removeLetter() {
     if (status !== 'playing') return;
-
     setCurrentGuess(prev => prev.slice(0, -1));
   }
 
   function submitGuess() {
-    console.log('Submitting guess:', currentGuess, currentGuess.length);
     if (status !== 'playing') return;
     if (currentGuess.length !== WORD_LENGTH) return;
 
     if (!isGuessAllowed(currentGuess, ALLOWED_WORDS)) {
       alert('Word not in list');
-      console.log('Guess not allowed:', currentGuess);
       return;
     }
 
@@ -72,46 +142,59 @@ export function useGame() {
     setResults(nextResults);
     setCurrentGuess('');
 
+    // WIN
     if (normalizedGuess === normalizedAnswer) {
       setStatus('won');
+      const today = dayId;
       setStats(prev => {
-      const guessesUsed = guesses.length + 1; // this submitted guess
-      const dist = [...prev.guessDistribution];
-      if (guessesUsed >= 1 && guessesUsed <= 6) dist[guessesUsed - 1]++;
+        if (prev.lastCompletedDayId === today) return prev;
+        const guessesUsed = nextGuesses.length;
+        const dist = [...prev.guessDistribution];
+        if (guessesUsed >= 1 && guessesUsed <= 6) dist[guessesUsed - 1]++;
+        const continues = prev.lastWinDayId !== null && diffDays(today, prev.lastWinDayId as string) === 1;
+        const currentStreak = continues ? prev.currentStreak + 1 : 1;
 
-      const currentStreak = prev.currentStreak + 1;
+        return {
+          ...prev,
+          gamesPlayed: prev.gamesPlayed + 1,
+          gamesWon: prev.gamesWon + 1,
+          currentStreak,
+          maxStreak: Math.max(prev.maxStreak, currentStreak),
+          guessDistribution: dist,
+          lastCompletedDayId: today,
+          lastWinDayId: today,
+        };
+      });
 
-      return {
-        ...prev,
-        gamesPlayed: prev.gamesPlayed + 1,
-        gamesWon: prev.gamesWon + 1,
-        currentStreak,
-        maxStreak: Math.max(prev.maxStreak, currentStreak),
-        guessDistribution: dist,
-      };
-    });
       return;
     }
 
+    // LOSS
     if (nextGuesses.length >= MAX_GUESSES) {
       setStatus('lost');
-      setStats(prev => ({
-      ...prev,
-      gamesPlayed: prev.gamesPlayed + 1,
-      currentStreak: 0,
-    }));
+      const today = dayId;
+      setStats(prev => {
+        if (prev.lastCompletedDayId === today) return prev;
+        return {
+        ...prev,
+        gamesPlayed: prev.gamesPlayed + 1,
+        currentStreak: 0,
+        lastCompletedDayId: today,
+      };
+      });
     }
   }
 
-return {
-  answer,
-  guesses,
-  results,
-  currentGuess,
-  status,
-  addLetter,
-  removeLetter,
-  submitGuess,
-  stats,
-};
+  return {
+    answer,
+    guesses,
+    results,
+    currentGuess,
+    status,
+    addLetter,
+    removeLetter,
+    submitGuess,
+    stats,
+    dayId, // useful for debugging
+  };
 }

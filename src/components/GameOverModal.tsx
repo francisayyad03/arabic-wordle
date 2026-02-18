@@ -6,6 +6,8 @@ interface Stats {
   currentStreak: number;
   maxStreak: number;
   guessDistribution: number[]; // length 6
+  lastCompletedDayId?: string | null;
+  lastWinDayId?: string | null;
 }
 
 interface GameOverModalProps {
