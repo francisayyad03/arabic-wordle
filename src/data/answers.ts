@@ -1,4 +1,4 @@
-export const ANSWERS = new Set([
+export const ANSWERS = [
   "اليوم",
   "الناس",
   "الذين",
@@ -4937,4 +4937,4 @@ export const ANSWERS = new Set([
   "مركزة",
   "مسلحي",
   "مصدره",
-]);
+];
