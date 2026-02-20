@@ -1,10 +1,10 @@
-import { View, StyleSheet, Text, TouchableOpacity, Image, Modal } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, Image } from 'react-native';
 import { useGame } from './src/game/useGame';
 import { Board } from './src/components/board';
 import { Keyboard } from './src/components/keyboard';
 import { getKeyboardState } from './src/game/keyboardState';
 import { GameOverModal } from './src/components/GameOverModal';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { StatsModal } from './src/components/statsModal';
 import { HelpModal } from './src/components/helpModal';
 
@@ -15,6 +15,27 @@ export default function App() {
   const [showModal, setShowModal] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
   const [showStats, setShowStats] = useState(false);
+
+  // ===== TOAST =====
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage(null);
+      toastTimerRef.current = null;
+    }, 1400);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -34,6 +55,13 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
+      {/* TOAST */}
+      {toastMessage && (
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
+      )}
+
       {/* BOARD */}
       <View style={styles.boardContainer}>
         <Board
@@ -47,7 +75,11 @@ export default function App() {
       <View style={styles.keyboardContainer}>
         <Keyboard
           onKey={game.addLetter}
-          onEnter={game.submitGuess}
+          onEnter={() => {
+            if (game.currentGuess.length !== 5) return;
+            const ok = game.submitGuess();
+            if (!ok) showToast('الكلمة غير موجودة في القائمة');
+          }}
           onBackspace={game.removeLetter}
           keyStates={keyStates}
         />
@@ -64,15 +96,15 @@ export default function App() {
         />
       )}
 
-      {/* HELP MODAL (simple placeholder) */}
+      {/* HELP MODAL */}
       <HelpModal visible={showHelp} onClose={() => setShowHelp(false)} />
 
       {/* STATS MODAL */}
-        <StatsModal
-          visible={showStats}
-          stats={game.stats}
-          onClose={() => setShowStats(false)}
-        />
+      <StatsModal
+        visible={showStats}
+        stats={game.stats}
+        onClose={() => setShowStats(false)}
+      />
     </View>
   );
 }
@@ -86,8 +118,8 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 58,
     paddingBottom: 18,
-    borderBottomWidth: 4,          // thicker “border” like you wanted
-    borderBottomColor: '#3E5F3C',  // olive accent border
+    borderBottomWidth: 4,
+    borderBottomColor: '#3E5F3C',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -96,7 +128,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     bottom: 12,
-    padding: 6
+    padding: 6,
   },
 
   headerIconRight: {
@@ -119,6 +151,27 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
+  // ===== TOAST STYLES =====
+  toast: {
+    position: 'absolute',
+    top: 110, // below header
+    alignSelf: 'center',
+    backgroundColor: '#1f1f1f',
+    borderWidth: 1,
+    borderColor: '#3A3A3A',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    zIndex: 999,
+  },
+
+  toastText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+
   boardContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -128,49 +181,5 @@ const styles = StyleSheet.create({
 
   keyboardContainer: {
     paddingBottom: 16,
-  },
-
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-
-  modalCard: {
-    backgroundColor: '#2E2B28',
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#3A3A3A',
-  },
-
-  modalTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-
-  modalText: {
-    color: '#E8E6E3',
-    fontSize: 16,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-
-  modalButton: {
-    marginTop: 14,
-    alignSelf: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    backgroundColor: '#3E5F3C',
-  },
-
-  modalButtonText: {
-    color: 'white',
-    fontWeight: '700',
   },
 });

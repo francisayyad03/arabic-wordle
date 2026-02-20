@@ -126,8 +126,7 @@ export function useGame() {
     if (currentGuess.length !== WORD_LENGTH) return;
 
     if (!isGuessAllowed(currentGuess, ALLOWED_WORDS)) {
-      alert('Word not in list');
-      return;
+      return false;
     }
 
     const normalizedGuess = normalizeArabic(currentGuess);
@@ -166,7 +165,7 @@ export function useGame() {
         };
       });
 
-      return;
+      return true;
     }
 
     // LOSS
@@ -183,6 +182,7 @@ export function useGame() {
       };
       });
     }
+    return true;
   }
 
   return {
