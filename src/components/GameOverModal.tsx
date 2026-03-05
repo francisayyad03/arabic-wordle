@@ -172,7 +172,9 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 20,
-    letterSpacing: 2,
+    letterSpacing: 0,
+    writingDirection: 'rtl',
+    textAlign: 'center',
   },
 
   statsRow: {
