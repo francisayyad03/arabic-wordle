@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 import { StatsModal } from './src/components/statsModal';
 import { HelpModal } from './src/components/helpModal';
 import { COLORS } from './src/utils/colors';
+import { hasSeenHelpModal, markHelpModalSeen } from './src/game/storage';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -39,6 +40,27 @@ function AppInner() {
   const [showModal, setShowModal] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
   const [showStats, setShowStats] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const openHelpOnFirstLaunch = async () => {
+      try {
+        const seen = await hasSeenHelpModal();
+        if (!seen) {
+          await markHelpModalSeen();
+          if (isMounted) setShowHelp(true);
+        }
+      } catch {
+      }
+    };
+
+    void openHelpOnFirstLaunch();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
