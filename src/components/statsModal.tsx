@@ -68,7 +68,7 @@ export function StatsModal({ visible, stats, onClose }: StatsModalProps) {
           </View>
 
           <Pressable onPress={onClose} style={styles.button}>
-            <Text style={styles.buttonText}>حسناً</Text>
+            <Text style={styles.buttonText}>موافق</Text>
           </Pressable>
         </View>
       </View>

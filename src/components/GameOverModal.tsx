@@ -124,7 +124,7 @@ export function GameOverModal({
             </Pressable>
 
             <Pressable onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>حسناً</Text>
+              <Text style={styles.closeButtonText}>موافق</Text>
             </Pressable>
           </View>
         </View>
