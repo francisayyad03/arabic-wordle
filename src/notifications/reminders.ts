@@ -77,7 +77,6 @@ async function scheduleReminderNotificationsAsync() {
 
   const dailyId = await Notifications.scheduleNotificationAsync({
     content: {
-      title: 'Kalima | كلمة',
       body,
       sound: false,
     },
@@ -115,7 +114,6 @@ export async function showcaseAllReminderMessagesForTestingAsync() {
       TEST_MESSAGES.map((body, index) =>
         Notifications.scheduleNotificationAsync({
           content: {
-            title: 'Kalima | كلمة',
             body,
             sound: false,
           },

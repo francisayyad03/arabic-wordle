@@ -27,10 +27,7 @@ export function Tile({ letter = '', state, size }: TileProps) {
     textColor = COLORS.lightGrey;
   }
 
-  const fontFamily =
-    state === 'correct' || state === 'present'
-      ? 'Roboto-ExtraBold'
-      : 'Roboto';
+  const fontWeight = state === 'correct' || state === 'present' ? '700' : '600';
 
   return (
     <View
@@ -46,7 +43,10 @@ export function Tile({ letter = '', state, size }: TileProps) {
           {
             fontSize,
             color: textColor,
-            fontFamily,
+            fontFamily: 'System',
+            fontWeight,
+            includeFontPadding: false,
+            textAlignVertical: 'center',
           },
         ]}
       >
@@ -64,6 +64,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   letter: {
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });

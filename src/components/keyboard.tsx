@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { Key, KeyState } from './key';
 
 interface KeyboardProps {
@@ -20,32 +20,36 @@ const OUTER_PADDING = 6;
 const MAX_KEYS = 12;
 
 export function Keyboard({ onKey, onEnter, onBackspace, keyStates }: KeyboardProps) {
-  const { width: screenWidth } = useWindowDimensions();
-  const isTablet = screenWidth >= 768;
-  const isLargePhone = !isTablet && screenWidth >= 390;
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const shortSide = Math.min(screenWidth, screenHeight);
+  const isTablet = Platform.OS === 'ios' ? shortSide >= 768 : shortSide >= 720;
+  const isAndroidTablet = Platform.OS === 'android' && isTablet;
+  const isAndroidWide = Platform.OS === 'android' && shortSide >= 600 && shortSide < 720;
+  const isLargePhone = !isTablet && !isAndroidWide && screenWidth >= 390;
 
   const { keyWidth, keyHeight, fontSize } = useMemo(() => {
-    const isTablet = screenWidth >= 768;
-    const isLargePhone = !isTablet && screenWidth >= 390;
-
     const available = screenWidth - OUTER_PADDING * 2;
 
     const totalMargins = MAX_KEYS * KEY_H_MARGIN * 2;
     let w = Math.floor((available - totalMargins) / MAX_KEYS);
 
-    const minW = isTablet ? 42 : isLargePhone ? 26 : 24;
-    const maxW = isTablet ? 62 : isLargePhone ? 40 : 36;
+    const minW = isTablet ? (isAndroidTablet ? 38 : 42) : isAndroidWide ? 30 : isLargePhone ? 26 : 24;
+    const maxW = isTablet ? (isAndroidTablet ? 54 : 62) : isAndroidWide ? 42 : isLargePhone ? 40 : 36;
     w = Math.max(minW, Math.min(maxW, w));
 
-    const minH = isTablet ? 50 : isLargePhone ? 54 : 40;
-    const maxH = isTablet ? 64 : isLargePhone ? 68 : 50;
+    const minH = isTablet ? (isAndroidTablet ? 46 : 50) : isAndroidWide ? 40 : isLargePhone ? 54 : 40;
+    const maxH = isTablet ? (isAndroidTablet ? 58 : 64) : isAndroidWide ? 52 : isLargePhone ? 68 : 50;
     const h = Math.max(minH, Math.min(maxH, Math.round(w * 1.15)));
 
-    const fs = isTablet ? Math.round(w * 0.48) : Math.round(w * 0.55);
+    const fs = isTablet
+      ? Math.round(w * (isAndroidTablet ? 0.46 : 0.48))
+      : isAndroidWide
+        ? Math.round(w * 0.47)
+        : Math.round(w * 0.55);
     const clampedFs = Math.max(20, Math.min(26, fs));
 
     return { keyWidth: w, keyHeight: h, fontSize: clampedFs };
-  }, [screenWidth]);
+  }, [screenWidth, isTablet, isAndroidTablet, isAndroidWide, isLargePhone]);
 
   return (
     <View style={[styles.outer, { paddingHorizontal: OUTER_PADDING, marginBottom: isLargePhone ? 24 : 0 }]}>

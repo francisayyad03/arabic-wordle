@@ -1,4 +1,4 @@
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { Tile } from './tile';
 import { TileResult } from '../game/types';
 
@@ -15,12 +15,14 @@ export function Board({ guesses, results, currentGuess }: BoardProps) {
   const { width, height } = useWindowDimensions();
 
   const shortSide = Math.min(width, height);
-  const isTablet = shortSide >= 768;
+  const isTablet = Platform.OS === 'ios' ? shortSide >= 768 : shortSide >= 720;
+  const isAndroidTablet = Platform.OS === 'android' && isTablet;
+  const isAndroidWide = Platform.OS === 'android' && shortSide >= 600 && shortSide < 720;
 
-  const boardMaxWidth = width * (isTablet ? 0.75 : 0.92);
-  const boardMaxHeight = height * (isTablet ? 0.62 : 0.50);
+  const boardMaxWidth = width * (isTablet ? (isAndroidTablet ? 0.67 : 0.75) : isAndroidWide ? 0.82 : 0.92);
+  const boardMaxHeight = height * (isTablet ? (isAndroidTablet ? 0.50 : 0.62) : isAndroidWide ? 0.48 : 0.50);
 
-  const gap = isTablet ? 10 : 1;
+  const gap = isTablet ? (isAndroidTablet ? 7 : 10) : isAndroidWide ? 4 : 6;
 
   const tileByWidth = Math.floor((boardMaxWidth - gap * (COLS - 1)) / COLS);
   const tileByHeight = Math.floor((boardMaxHeight - gap * (ROWS - 1)) / ROWS);
@@ -28,7 +30,11 @@ export function Board({ guesses, results, currentGuess }: BoardProps) {
   let tileSize = Math.min(tileByWidth, tileByHeight);
 
   if (isTablet) {
-    tileSize = Math.max(56, Math.min(tileSize, 90)); // iPad bigger
+    tileSize = isAndroidTablet
+      ? Math.max(44, Math.min(tileSize, 70))
+      : Math.max(56, Math.min(tileSize, 90)); // iPad bigger
+  } else if (isAndroidWide) {
+    tileSize = Math.max(42, Math.min(tileSize, 56));
   } else {
     tileSize = Math.max(40, Math.min(tileSize, 56));  // phones capped
   }
