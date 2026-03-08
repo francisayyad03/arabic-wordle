@@ -24,6 +24,7 @@ export type PersistedStats = {
 };
 
 const GAME_KEY = "arabicwordle.game.v1";
+const COMPLETED_GAME_KEY = "arabicwordle.completedGame.v1";
 const STATS_KEY = "arabicwordle.stats.v1";
 const HELP_SEEN_KEY = "arabicwordle.helpSeen.v1";
 
@@ -38,6 +39,15 @@ export async function loadGameState(): Promise<PersistedGame | null> {
 
 export async function clearGameState() {
   await AsyncStorage.removeItem(GAME_KEY);
+}
+
+export async function saveCompletedGameState(state: PersistedGame) {
+  await AsyncStorage.setItem(COMPLETED_GAME_KEY, JSON.stringify(state));
+}
+
+export async function loadCompletedGameState(): Promise<PersistedGame | null> {
+  const raw = await AsyncStorage.getItem(COMPLETED_GAME_KEY);
+  return raw ? (JSON.parse(raw) as PersistedGame) : null;
 }
 
 export async function saveStats(stats: PersistedStats) {

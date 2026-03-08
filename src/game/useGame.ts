@@ -6,7 +6,14 @@ import { TileResult } from './types';
 import { ALLOWED_WORDS } from '../data/allowed';
 import { normalizeArabic } from '../utils/arabic';
 import { getLocalDayId, diffDays } from '../utils/day';
-import { loadGameState, saveGameState, loadStats, saveStats } from './storage';
+import {
+  loadGameState,
+  saveGameState,
+  loadStats,
+  saveStats,
+  loadCompletedGameState,
+  saveCompletedGameState,
+} from './storage';
 
 const MAX_GUESSES = 6;
 const WORD_LENGTH = 5;
@@ -59,18 +66,47 @@ export function useGame() {
 
       // game
       const savedGame = await loadGameState();
+      const savedCompletedGame = await loadCompletedGameState();
 
       // always compute answer from dayId (source of truth)
       const todayAnswer = getDailyWord(today);
 
-      if (savedGame && savedGame.dayId === today) {
-        setDayId(today);
-        setAnswer(todayAnswer);
+      if (savedGame) {
+        const isSameDay = savedGame.dayId === today;
+        const movedBackInTime = diffDays(today, savedGame.dayId) < 0;
 
-        setGuesses(savedGame.guesses ?? []);
-        setResults(savedGame.results ?? []);
-        setCurrentGuess(savedGame.currentGuess ?? '');
-        setStatus(savedGame.status ?? 'playing');
+        if (isSameDay || movedBackInTime) {
+          if (movedBackInTime && savedCompletedGame && savedCompletedGame.dayId === today) {
+            setDayId(today);
+            setAnswer(todayAnswer);
+            setGuesses(savedCompletedGame.guesses ?? []);
+            setResults(savedCompletedGame.results ?? []);
+            setCurrentGuess('');
+            setStatus(savedCompletedGame.status ?? 'lost');
+            setHydrated(true);
+            return;
+          }
+
+          const effectiveDayId = movedBackInTime ? savedGame.dayId : today;
+          const effectiveAnswer = getDailyWord(effectiveDayId);
+
+          setDayId(effectiveDayId);
+          setAnswer(effectiveAnswer);
+
+          setGuesses(savedGame.guesses ?? []);
+          setResults(savedGame.results ?? []);
+          setCurrentGuess(savedGame.currentGuess ?? '');
+          setStatus(savedGame.status ?? 'playing');
+        } else {
+          // new day -> fresh board
+          setDayId(today);
+          setAnswer(todayAnswer);
+
+          setGuesses([]);
+          setResults([]);
+          setCurrentGuess('');
+          setStatus('playing');
+        }
       } else {
         // new day -> fresh board
         setDayId(today);
@@ -145,6 +181,14 @@ export function useGame() {
     if (normalizedGuess === normalizedAnswer) {
       setStatus('won');
       const today = dayId;
+      void saveCompletedGameState({
+        dayId: today,
+        answer,
+        guesses: nextGuesses,
+        results: nextResults,
+        currentGuess: '',
+        status: 'won',
+      });
       setStats(prev => {
         if (prev.lastCompletedDayId === today) return prev;
         const guessesUsed = nextGuesses.length;
@@ -172,6 +216,14 @@ export function useGame() {
     if (nextGuesses.length >= MAX_GUESSES) {
       setStatus('lost');
       const today = dayId;
+      void saveCompletedGameState({
+        dayId: today,
+        answer,
+        guesses: nextGuesses,
+        results: nextResults,
+        currentGuess: '',
+        status: 'lost',
+      });
       setStats(prev => {
         if (prev.lastCompletedDayId === today) return prev;
         return {

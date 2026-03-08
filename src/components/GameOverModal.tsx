@@ -1,4 +1,4 @@
-import { Modal, View, Text, StyleSheet, Pressable, Share, ScrollView, useWindowDimensions } from 'react-native';
+import { Modal, View, Text, StyleSheet, Pressable, Share, ScrollView, useWindowDimensions, PixelRatio } from 'react-native';
 import type { TileResult, TileState } from '../game/types';
 import { COLORS } from '../utils/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,6 +33,7 @@ export function GameOverModal({
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const modalMaxHeight = height - insets.top - insets.bottom - 24;
+  const useWrappedStats = PixelRatio.getFontScale() >= 1.2;
   const isWin = status === 'won';
 
   const safeStats = stats ?? {
@@ -107,11 +108,11 @@ export function GameOverModal({
           <Text style={styles.answer}>{answer}</Text>
 
           {/* STATS SUMMARY */}
-          <View style={styles.statsRow}>
-            <StatBlock label="لعبت" value={safeStats.gamesPlayed} />
-            <StatBlock label="نسبة الفوز" value={`${winPercent}%`} />
-            <StatBlock label="السلسلة الحالية" value={safeStats.currentStreak} />
-            <StatBlock label="أفضل سلسلة" value={safeStats.maxStreak} />
+          <View style={[styles.statsRow, useWrappedStats && styles.statsRowWrapped]}>
+            <StatBlock label="لعبت" value={safeStats.gamesPlayed} wrapped={useWrappedStats} />
+            <StatBlock label="نسبة الفوز" value={`${winPercent}%`} wrapped={useWrappedStats} />
+            <StatBlock label="السلسلة الحالية" value={safeStats.currentStreak} wrapped={useWrappedStats} />
+            <StatBlock label="أفضل سلسلة" value={safeStats.maxStreak} wrapped={useWrappedStats} />
           </View>
 
           {/* DISTRIBUTION */}
@@ -150,9 +151,17 @@ export function GameOverModal({
   );
 }
 
-function StatBlock({ label, value }: { label: string; value: any }) {
+function StatBlock({
+  label,
+  value,
+  wrapped,
+}: {
+  label: string;
+  value: any;
+  wrapped: boolean;
+}) {
   return (
-    <View style={styles.statBlock}>
+    <View style={[styles.statBlock, wrapped && styles.statBlockWrapped]}>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -207,9 +216,18 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 20,
   },
+  statsRowWrapped: {
+    flexWrap: 'wrap',
+    rowGap: 10,
+  },
   statBlock: {
     alignItems: 'center',
-    flex: 1,
+    width: '25%',
+    paddingHorizontal: 4,
+  },
+  statBlockWrapped: {
+    width: '50%',
+    paddingHorizontal: 6,
   },
   statValue: {
     color: COLORS.lightGrey,
@@ -220,6 +238,7 @@ const styles = StyleSheet.create({
     color: COLORS.lightGrey,
     fontSize: 11,
     textAlign: 'center',
+    flexShrink: 1,
   },
 
   distributionContainer: {
@@ -234,17 +253,19 @@ const styles = StyleSheet.create({
   distLabel: {
     color: COLORS.lightGrey,
     width: 20,
+    textAlign: 'center',
   },
   barBackground: {
     flex: 1,
     backgroundColor: 'rgba(218, 220, 224, 0.03)',
-    height: 20,
+    minHeight: 24,
     borderRadius: 4,
     overflow: 'hidden',
+    justifyContent: 'center',
   },
   barFill: {
     backgroundColor: COLORS.lightGrey,
-    height: '100%',
+    minHeight: 24,
     justifyContent: 'center',
     paddingHorizontal: 6,
   },

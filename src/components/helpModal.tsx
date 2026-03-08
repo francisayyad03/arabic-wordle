@@ -107,7 +107,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 14,
     textAlign: 'center',
-    lineHeight: 22,
   },
   rules: {
     width: '100%',
@@ -122,6 +121,8 @@ const styles = StyleSheet.create({
     color: COLORS.lightGrey,
     fontSize: 15,
     textAlign: 'right',
+    flex: 1,
+    flexShrink: 1,
   },
   ruleRow: {
     flexDirection: 'row-reverse',
@@ -158,7 +159,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 6,
     textAlign: 'right',
-    lineHeight: 20,
   },
   button: {
     backgroundColor: COLORS.lightGrey,
