@@ -23,7 +23,7 @@ export function Board({ guesses, results, currentGuess, status }: BoardProps) {
   const boardMaxWidth = width * (isTablet ? (isAndroidTablet ? 0.67 : 0.75) : isAndroidWide ? 0.82 : 0.92);
   const boardMaxHeight = height * (isTablet ? (isAndroidTablet ? 0.50 : 0.62) : isAndroidWide ? 0.48 : 0.50);
 
-  const gap = isTablet ? (isAndroidTablet ? 7 : 10) : isAndroidWide ? 4 : 6;
+  const gap = isTablet ? (isAndroidTablet ? 7 : 10) : isAndroidWide ? 4 : Platform.OS === 'ios' ? 1 : 6;
 
   const tileByWidth = Math.floor((boardMaxWidth - gap * (COLS - 1)) / COLS);
   const tileByHeight = Math.floor((boardMaxHeight - gap * (ROWS - 1)) / ROWS);
