@@ -1,4 +1,6 @@
 // src/utils/day.ts
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 export function getLocalDayId(date = new Date()): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -12,8 +14,9 @@ export function dayIdToLocalMidnight(dayId: string): Date {
 }
 
 export function diffDays(aDayId: string, bDayId: string): number {
-  const a = dayIdToLocalMidnight(aDayId).getTime();
-  const b = dayIdToLocalMidnight(bDayId).getTime();
-  const ms = 24 * 60 * 60 * 1000;
-  return Math.round((a - b) / ms);
+  const [ay, am, ad] = aDayId.split("-").map(Number);
+  const [by, bm, bd] = bDayId.split("-").map(Number);
+  const aUtcDay = Date.UTC(ay, am - 1, ad) / MS_PER_DAY;
+  const bUtcDay = Date.UTC(by, bm - 1, bd) / MS_PER_DAY;
+  return aUtcDay - bUtcDay;
 }
